@@ -11,7 +11,7 @@
     "server":"npm run dev --prefix server",
     "client":"npm start --prefix client",
     "dev":"npm run server & npm run client",
-    "deploy": "npm build --prefix client && npm start --prefix server"
+    "deploy": "npm run build --prefix client && npm start --prefix server"
   },
   "keywords": [],
   "author": "",
