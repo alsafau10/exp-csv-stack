@@ -7,6 +7,7 @@ const {loadPlanetsData} = require('./models/planets.model');
 
 const PORT = process.argv.PORT || 8000;
 const MONGO_URL = process.env.MONGO_URL;
+console.log(MONGO_URL);
 
 const server = http.createServer(app);
 
