@@ -1,6 +1,8 @@
-const launches = new Map();
+const launchesDB = require('./launches.mongo');
+const planets = require('./planets.mongo');
 
-let latestFlightNumber = 99;
+const DEFAULT_LAUNCH_NUMBER = 100;
+
 
 const launch = {
     flightNumber:99,
@@ -15,21 +17,68 @@ const launch = {
     success:true
 }
 
-launches.set(launch.flightNumber,launch);
+saveLaunchData(launch);
 
-function getAllLaunches (){
-    return Array.from(launches.values())
+async function saveLaunchData(launch){
+    try{
+        //referential integrity by the validating the target's planet 
+        const planet = await planets.findOne({
+            keplerName:launch.target
+        });
+
+        if(!planet){
+            throw new Error('there is no matching planet');
+        }
+
+        //end here
+        await launchesDB.updateOne(
+           { flightNumber: launch.flightNumber,
+           },launch,{
+            upsert:true
+           }
+        );
+    }catch (err){
+        console.error(err);
+    }
 }
 
-function addNewLaunch(launch){
-    latestFlightNumber++;
-    launches.set(latestFlightNumber, 
-        Object.assign(launch,{
-            success:true,
-            upcoming:true,
-            customer:['ZTM','NASA'],
-            flightNumber : latestFlightNumber,
-    }));
+async function getAllLaunches (){
+    return await launchesDB.find({},{
+        __v:0,_id:0
+    })
+}
+
+async function getLatestFlightNumber()
+{
+    try{
+        const latestLaunch = await launchesDB.findOne({
+
+        }
+        ).sort('-flightNumber');
+        if(!latestLaunch){
+            return DEFAULT_LAUNCH_NUMBER;
+        }
+        return latestLaunch.flightNumber;
+    }catch(err){
+        console.log('error  '+ err);
+    }
+}
+
+
+async function scheduleNewLaunch(launch){
+    try{
+    const newFlightNumber = await getLatestFlightNumber()+1;
+    const newLaunch = Object.assign(launch,{
+        success: true,
+        upcoming:true,
+        customer:['NASA','ALSA'],
+        flightNumber: newFlightNumber,
+    })
+
+    await saveLaunchData(newLaunch)
+} catch(err){
+    console.error('error  ' + err);
+}
 }
 
 function existLaunchById(id){
@@ -44,9 +93,9 @@ function abortLaunchById(id){
 }
 
 module.exports = {
-    launches,
+
     getAllLaunches,
-    addNewLaunch,
+    scheduleNewLaunch,
     existLaunchById,
     abortLaunchById
 };

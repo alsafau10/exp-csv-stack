@@ -1,13 +1,13 @@
-const {launches, getAllLaunches, addNewLaunch, existLaunchById, abortLaunchById} = require('../../models/launch.model');
+const {launches, getAllLaunches, addNewLaunch, existLaunchById, abortLaunchById, scheduleNewLaunch} = require('../../models/launch.model');
 
-function httpGetAllLaunches(req,res){
-    return res.status(200).json(getAllLaunches());
+async function httpGetAllLaunches(req,res){
+    return res.status(200).json(await getAllLaunches());
 }
 
-function httpAddNewData(req,res){
+async function httpAddNewData(req,res){
     const launch = req.body;
     launch.launchDate = new Date(launch.launchDate);
-    addNewLaunch(launch);
+    await scheduleNewLaunch(launch);
     res.status(201).json(launch);
 }
 
