@@ -11,7 +11,7 @@ async function httpAddNewData(req,res){
     res.status(201).json(launch);
 }
 
-function httpAbortData(req, res ){
+async function httpAbortData(req, res ){
     const {
         params:{
             id
@@ -19,15 +19,30 @@ function httpAbortData(req, res ){
     } = req;
 
     const idLaunches = Number(id);
-    if (!existLaunchById(idLaunches)){
-        return res.status(400).json({
-            status:'fail',
-            message:'Launch does\'nt exist'
+
+    try{
+        const existId = await existLaunchById(idLaunches);    
+        if (!existId){
+            return res.status(400).json({
+                status:'fail',
+                message:'Launch does\'nt exist'
+            });
+        }
+        const abort = await abortLaunchById(idLaunches);
+
+        if(!abort){
+            return res.status(400).json({
+                status:'fail',
+                message:'launch couldnt be aborted'
+            });
+        }
+        return res.status(200).json({
+            status:'success',
+            message:'Launched has been aborted'
         });
-    }
-    const abort = abortLaunchById(idLaunches);
-    return res.status(200).json(abort);
-}
+}catch(err){
+    console.error('error', err);
+}}
 
 module.exports = {
     httpGetAllLaunches,

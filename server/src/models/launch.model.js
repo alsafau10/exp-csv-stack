@@ -20,9 +20,8 @@ const launch = {
 saveLaunchData(launch);
 
 async function saveLaunchData(launch){
-    try{
         //referential integrity by the validating the target's planet 
-        const planet = await planets.findOne({
+        const planet = await planets.findOneAndUpdate({
             keplerName:launch.target
         });
 
@@ -37,9 +36,6 @@ async function saveLaunchData(launch){
             upsert:true
            }
         );
-    }catch (err){
-        console.error(err);
-    }
 }
 
 async function getAllLaunches (){
@@ -81,15 +77,22 @@ async function scheduleNewLaunch(launch){
 }
 }
 
-function existLaunchById(id){
-    return launches.has(id);
+async function existLaunchById(id){
+    return await launchesDB.findOne({
+        flightNumber:id,
+    });
 }
 
-function abortLaunchById(id){
-    const aborted = launches.get(id);
-    aborted.upcoming = false;
-    aborted.success = false;
-    return aborted;
+async function abortLaunchById(id){
+    const aborted = await launchesDB.updateOne({
+        flightNumber: id
+    },{
+        success:false,
+        upcoming:false
+    });
+
+    return aborted.modifiedCount === 1;
+
 }
 
 module.exports = {
