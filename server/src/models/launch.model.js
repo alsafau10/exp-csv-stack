@@ -1,23 +1,80 @@
 const launchesDB = require('./launches.mongo');
 const planets = require('./planets.mongo');
+require('dotenv/config');
 
 const DEFAULT_LAUNCH_NUMBER = 100;
 
 
 const launch = {
-    flightNumber:99,
-    mission : 'Kepler Exploration X',
-    rocket : 'Explorer IS1',
-    launchDate : new Date('December 28, 2030'),
+    flightNumber:99, // flight_launch
+    mission : 'Kepler Exploration X', //name
+    rocket : 'Explorer IS1',//rocket.name
+    launchDate : new Date('December 28, 2030'), //date_local
     target : 'Kepler-442 b',
     customer : [
-        'ZTM','NASA'
+        'ZTM','NASA' //payload.customers for each data
     ],
-    upcoming:true,
-    success:true
+    upcoming:true,//upcoming
+    success:true//success
 }
 
 saveLaunchData(launch);
+
+async function loadLaunchesData(){
+    const data = {
+        query:{},
+        options:{
+            populate: [{
+                path:'rocket',
+                select:{
+                    name:1
+                }
+            },{
+                path:'payloads',
+                select: {
+                    customers:1
+                }
+            }
+        ]
+        }
+    };
+
+    try {
+        const response = await fetch(process.env.SPACE_API, {
+            method : 'POST',
+            headers: {
+                "Content-Type": "Application/json"
+            },
+            body: JSON.stringify(data)
+        });
+        if(!response.ok){
+            throw new Error('response status: ' + response.status);
+        }
+        const docs = await response.json();
+        const lauchesDocs = docs.docs;
+
+        for(let launchDoc of lauchesDocs){
+            const payloads = launchDoc['payloads'];
+            const customers = payloads.flatMap(payload =>payload['customers']);
+
+            const launchSpace = {
+                flightNumber: launchDoc['flight_number'],
+                mission: launchDoc['name'],
+                rocket: launchDoc['rocket']['name'],
+                launchDate: launchDoc['date_local'],
+                upcoming: launchDoc['upcoming'],
+                success: launchDoc['success'],
+                customers
+            }
+
+            console.info(`${launchSpace.flightNumber} ${launchSpace.mission}`);
+        }
+    } catch (error) {
+        console.error(error.message)        
+    }
+    
+
+}
 
 async function saveLaunchData(launch){
         //referential integrity by the validating the target's planet 
@@ -98,6 +155,7 @@ async function abortLaunchById(id){
 module.exports = {
 
     getAllLaunches,
+    loadLaunchesData,
     scheduleNewLaunch,
     existLaunchById,
     abortLaunchById

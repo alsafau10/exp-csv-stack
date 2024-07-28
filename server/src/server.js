@@ -4,6 +4,7 @@ const app = require('./app');
 require('dotenv/config');
 
 const {loadPlanetsData} = require('./models/planets.model');
+const { loadLaunchesData } = require('./models/launch.model');
 
 const PORT = process.argv.PORT || 8000;
 const MONGO_URL = process.env.MONGO_URL;
@@ -22,6 +23,7 @@ mongoose.connection.on('error',(error)=>{
 async function startServer(){
     await mongoose.connect(MONGO_URL);
     await loadPlanetsData();
+    await loadLaunchesData();
     server.listen(PORT, ()=>{
         console.log(`listening on ${PORT}`);
     })    

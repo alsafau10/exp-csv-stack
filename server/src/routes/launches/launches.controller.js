@@ -1,4 +1,4 @@
-const {launches, getAllLaunches, addNewLaunch, existLaunchById, abortLaunchById, scheduleNewLaunch} = require('../../models/launch.model');
+const {launches, getAllLaunches, addNewLaunch, existLaunchById, abortLaunchById, scheduleNewLaunch, loadLaunchesData} = require('../../models/launch.model');
 
 async function httpGetAllLaunches(req,res){
     return res.status(200).json(await getAllLaunches());
@@ -44,9 +44,21 @@ async function httpAbortData(req, res ){
     console.error('error', err);
 }}
 
+async function httpGetSpaceXData(req,res){
+    const data = await loadLaunchesData();
+    if (!data) {
+        return res.status(400).json({
+            status:'fail',
+            message:'unable fetch data'
+        });
+    }
+    return res.status(200).send(data);
+}
+
 module.exports = {
     httpGetAllLaunches,
     httpAddNewData,
-    httpAbortData
+    httpAbortData,
+    httpGetSpaceXData
     
 }
