@@ -20,10 +20,11 @@ const launch = {
 
 saveLaunchData(launch);
 
-async function loadLaunchesData(){
+async function fetchLaunchesData(API){
     const data = {
         query:{},
         options:{
+            pagination:false,
             populate: [{
                 path:'rocket',
                 select:{
@@ -40,7 +41,7 @@ async function loadLaunchesData(){
     };
 
     try {
-        const response = await fetch(process.env.SPACE_API, {
+        const response = await fetch(API, {
             method : 'POST',
             headers: {
                 "Content-Type": "Application/json"
@@ -50,31 +51,57 @@ async function loadLaunchesData(){
         if(!response.ok){
             throw new Error('response status: ' + response.status);
         }
-        const docs = await response.json();
-        const lauchesDocs = docs.docs;
-
-        for(let launchDoc of lauchesDocs){
-            const payloads = launchDoc['payloads'];
-            const customers = payloads.flatMap(payload =>payload['customers']);
-
-            const launchSpace = {
-                flightNumber: launchDoc['flight_number'],
-                mission: launchDoc['name'],
-                rocket: launchDoc['rocket']['name'],
-                launchDate: launchDoc['date_local'],
-                upcoming: launchDoc['upcoming'],
-                success: launchDoc['success'],
-                customers
-            }
-
-            console.info(`${launchSpace.flightNumber} ${launchSpace.mission}`);
-        }
-    } catch (error) {
-        console.error(error.message)        
+        return await response.json();
+    }catch(err){
+        console.error(`new error has occured ${err.message}`);
     }
-    
 
 }
+
+async function convertLaunchesData(){
+    const docs = await fetchLaunchesData(process.env.SPACE_API);
+    const lauchesDocs = docs.docs;
+
+    for(let launchDoc of lauchesDocs){
+        const payloads = launchDoc['payloads'];
+        const customers = payloads.flatMap(payload=>payload['customers']);
+
+        const launchSpace = {
+            flightNumber: launchDoc['flight_number'],
+            mission: launchDoc['name'],
+            rocket: launchDoc['rocket']['name'],
+            launchDate: launchDoc['date_local'],
+            upcoming: launchDoc['upcoming'],
+            success: launchDoc['success'],
+            customers
+        }
+
+        console.info(`${launchSpace.flightNumber} ${launchSpace.mission}`);
+    }
+}
+
+async function loadLaunchesData(){
+    const firstLaunch =await filterLaunch({
+        flightNumber: 1,
+        rocket: 'falcon',
+        mission: 'falconSat',
+    });
+
+    if(!firstLaunch){
+        console.info('object already loaded');
+    }
+    else{
+        const response = await convertLaunchesData();    
+        await saveLaunch(response);
+    }
+
+        
+}
+
+async function filterLaunch(filter){
+    return await launchesDB.findOne(filter);
+}
+
 
 async function saveLaunchData(launch){
         //referential integrity by the validating the target's planet 
@@ -135,9 +162,9 @@ async function scheduleNewLaunch(launch){
 }
 
 async function existLaunchById(id){
-    return await launchesDB.findOne({
-        flightNumber:id,
-    });
+    return await filterLaunch({
+        flightNumber: id,
+    })
 }
 
 async function abortLaunchById(id){
