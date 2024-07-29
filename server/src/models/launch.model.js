@@ -102,7 +102,6 @@ async function filterLaunch(filter){
     return await launchesDB.findOne(filter);
 }
 
-
 async function saveLaunchData(launch){
         //referential integrity by the validating the target's planet 
         const planet = await planets.findOneAndUpdate({
