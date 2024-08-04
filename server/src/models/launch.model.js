@@ -76,7 +76,8 @@ async function convertLaunchesData(){
             customers
         }
 
-        console.info(`${launchSpace.flightNumber} ${launchSpace.mission}`);
+        console.info(`${launchSpace.flightNumber} ${launchSpace.mission}`);    
+        await saveLaunchData(launchSpace);
     }
 }
 
@@ -87,12 +88,12 @@ async function loadLaunchesData(){
         mission: 'falconSat',
     });
 
-    if(!firstLaunch){
+    if(firstLaunch){
         console.info('object already loaded');
     }
     else{
-        const response = await convertLaunchesData();    
-        await saveLaunch(response);
+        await convertLaunchesData();    
+
     }
 
         
@@ -103,16 +104,7 @@ async function filterLaunch(filter){
 }
 
 async function saveLaunchData(launch){
-        //referential integrity by the validating the target's planet 
-        const planet = await planets.findOneAndUpdate({
-            keplerName:launch.target
-        });
-
-        if(!planet){
-            throw new Error('there is no matching planet');
-        }
-
-        //end here
+        
         await launchesDB.updateOne(
            { flightNumber: launch.flightNumber,
            },launch,{
@@ -121,10 +113,12 @@ async function saveLaunchData(launch){
         );
 }
 
-async function getAllLaunches (){
+async function getAllLaunches(page=1,limit=50){
     return await launchesDB.find({},{
         __v:0,_id:0
     })
+    .skip((page-1)*limit)
+    .limit(limit)
 }
 
 async function getLatestFlightNumber()
@@ -146,6 +140,16 @@ async function getLatestFlightNumber()
 
 async function scheduleNewLaunch(launch){
     try{
+    //referential integrity by the validating the target's planet 
+    const planet = await planets.findOneAndUpdate({
+        keplerName:launch.target
+    });
+
+    if(!planet){
+        throw new Error('there is no matching planet');
+    }
+
+    //end here
     const newFlightNumber = await getLatestFlightNumber()+1;
     const newLaunch = Object.assign(launch,{
         success: true,
